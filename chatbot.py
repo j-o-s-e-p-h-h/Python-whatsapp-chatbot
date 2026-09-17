@@ -23,12 +23,12 @@ app = Flask(__name__)
 
 @app.get("/webhook")
 def verify():
-    if requests.args.get("hub.verify_token") == VERIFY_TOKEN:
+    if request.args.get("hub.verify_token") == VERIFY_TOKEN:
         return request.args.get("hub.challenge", ""), 200
     return "wrong verify token", 403
 
-@app.get("/webhook")
-def verify():
+@app.post("/webhook")
+def recieve():
     body = request.get_json(silent=True)
     try:
         msg = body["entry"][0]["changes"][0]["value"]["messages"][0]
