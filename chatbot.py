@@ -16,10 +16,16 @@ def send_message(phone_number, message):
                             "type": "text", "text": {"body": message}},
                             timeout=15)
     if not r.ok:
-        print("send failed", r.status_code, r.message)
+        print("send failed", r.status_code, r.text)
     
     
 app = Flask(__name__)
+
+@app.get("/webhook")
+def verify():
+    if requests.args.get("hub.verify_token") == VERIFY_TOKEN:
+        return request.args.get("hub.challenge", ""), 200
+    return "wrong verify token", 403
 
 @app.get("/webhook")
 def verify():
