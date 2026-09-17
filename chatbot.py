@@ -1,3 +1,5 @@
+import sqlite3
+import time
 import re
 import ollama
 import os
@@ -10,6 +12,41 @@ TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH = "https://graph.facebook.com/v25.0"
+DB_PATH = "pypaper.db"
+MAXIMUM_ATTEMPTS = 3
+
+def database():
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def get_student(phone):
+    with database() as c:
+        row = c. execute("SELECT * FROM students WHERE phone = ?", (phone,)).fetchone()
+        return dict(row) if row else None
+    
+def create_student(phone):
+    with database() as c:
+        c.execute("INSERT INTO students (phone) VALUES (?)", (phone,))
+    log_event(phone, "enrolled")
+    return get_student(phone)
+
+def update_student(phone, **fields):
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    with database() as c:
+        c.execute(f"UPDATE students SET {sets} WHERE phone = ?", (*fields.values(), phone))
+
+def log_event(phone, event, detail=None):
+    with database() as c:
+        c.execute("INSERT INTO events VALUES (?, ?, ?, ?)", (phone, event, detail, time.time()))
+
+def already_seen(message_id):
+    with database() as c:
+        try:
+            c.execute("INSERT INTO seen_messages VALUES (?, ?)", (message_id, time.time()))
+            return False
+        except sqlite3.IntegrityError:
+            return True
 
 def send_message(phone_number, message):
     r = requests.post(f"{GRAPH}/{PHONE_NUMBER_ID}/messages",
@@ -69,6 +106,18 @@ def recieve():
         ok = all(re.search(p, code, re.IGNORECASE) for p in patterns)
         send_message(msg["from"], f"I read:\n\n{code}\n\n" + ("Correct!" if ok else "Not quite yet"))
     return "ok", 200
+
+def init_database():
+    with database() as c:
+        c.executescript("""CREATE TABLE IF NOT EXISTS students (
+                                phone TEXT PRIMARY KEY,
+                                current_lesson INTERGER NOT NULL DEFAULT 1,
+                                current_step INTEGER NOT NULL DEFAULT 0,
+                                attempts INTEGER NOT NULL DEFAULT 0,
+                                score INTEGER NOT NULL DEFAULT 0);
+                            CREATE TABLE IF NOT EXISTS events (phone TEXT, even TEXT, detail TEXT, ts REAL);
+                            CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);""")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
