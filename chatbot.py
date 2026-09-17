@@ -18,6 +18,12 @@ def send_message(phone_number, message):
     if not r.ok:
         print("send failed", r.status_code, r.text)
     
+def download_media(media_id):
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    info = requests.get(f"{GRAPH}/{media_id}", headers=headers, timeout=15).json()
+    img = requests.get(info["url"], headers=headers, timeout=30)
+    return img.content, info.get("mime_type", "image/jpeg")
+
     
 app = Flask(__name__)
 
@@ -37,6 +43,9 @@ def recieve():
     
     if msg["type"] == "text":
         send_message(msg["from"], "You said: " + msg["text"]["body"])
+    elif msg["type"] == "image":
+        image, mime = download_media(msg["image"]["id"])
+        send_message(msg["from"], "nice photo!")
     return "ok", 200
 
 if __name__ == "__main__":
