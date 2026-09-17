@@ -1,5 +1,6 @@
 import sqlite3
 import time
+from lessons import LESSONS, VIDEOS
 import re
 import ollama
 import os
@@ -14,6 +15,17 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH = "https://graph.facebook.com/v25.0"
 DB_PATH = "pypaper.db"
 MAXIMUM_ATTEMPTS = 3
+
+def init_database():
+    with database() as c:
+        c.executescript("""CREATE TABLE IF NOT EXISTS students (
+                                phone TEXT PRIMARY KEY,
+                                current_lesson INTEGER NOT NULL DEFAULT 1,
+                                current_step INTEGER NOT NULL DEFAULT 0,
+                                attempts INTEGER NOT NULL DEFAULT 0,
+                                score INTEGER NOT NULL DEFAULT 0);
+                            CREATE TABLE IF NOT EXISTS events (phone TEXT, event TEXT, detail TEXT, ts REAL);
+                            CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);""")
 
 def database():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -107,17 +119,6 @@ def recieve():
         send_message(msg["from"], f"I read:\n\n{code}\n\n" + ("Correct!" if ok else "Not quite yet"))
     return "ok", 200
 
-def init_database():
-    with database() as c:
-        c.executescript("""CREATE TABLE IF NOT EXISTS students (
-                                phone TEXT PRIMARY KEY,
-                                current_lesson INTERGER NOT NULL DEFAULT 1,
-                                current_step INTEGER NOT NULL DEFAULT 0,
-                                attempts INTEGER NOT NULL DEFAULT 0,
-                                score INTEGER NOT NULL DEFAULT 0);
-                            CREATE TABLE IF NOT EXISTS events (phone TEXT, even TEXT, detail TEXT, ts REAL);
-                            CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);""")
-
-
+init_database()
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
