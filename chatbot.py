@@ -66,8 +66,8 @@ def recieve():
         image, mime = download_media(msg["image"]["id"])
         code = transcribe_photo(image)
         patterns = [r"for\s*\w+\s+in\s+range\s*\(\s*3\s*\)\s*:", r"print\s*\(\s*[\"']#[\"']\s*\)"]
-        ok = all(re.search(p, code) for p in patterns)
-        send_message(msg["from"], f"I read:\n\n{code}" + ("Correct!" if ok else "Not quite yet"))
+        ok = all(re.search(p, code, re.IGNORECASE) for p in patterns)
+        send_message(msg["from"], f"I read:\n\n{code}\n\n" + ("Correct!" if ok else "Not quite yet"))
     return "ok", 200
 
 if __name__ == "__main__":
