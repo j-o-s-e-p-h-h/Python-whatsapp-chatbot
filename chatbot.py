@@ -1,5 +1,6 @@
 import sqlite3
 import time
+import threading
 from lessons import LESSONS, VIDEOS
 import re
 import ollama
@@ -191,22 +192,28 @@ def verify():
         return request.args.get("hub.challenge", ""), 200
     return "wrong verify token", 403
 
-@app.post("/webhook")
-def recieve():
-    body = request.get_json(silent=True)
+def parse_incoming(body):
     try:
         msg = body["entry"][0]["changes"][0]["value"]["messages"][0]
     except (KeyError, IndexError, TypeError):
-        return "ok", 200
-    
+        return None                           # delivery receipt etc.
+    out = {"id": msg["id"], "from": msg["from"], "kind": None, "text": None, "media_id": None}
     if msg["type"] == "text":
-        send_message(msg["from"], "You said: " + msg["text"]["body"])
+        out["kind"], out["text"] = "text", msg["text"]["body"]
     elif msg["type"] == "image":
-        image, mime = download_media(msg["image"]["id"])
-        code = transcribe_photo(image)
-        patterns = [r"for\s*\w+\s+in\s+range\s*\(\s*3\s*\)\s*:", r"print\s*\(\s*[\"']#[\"']\s*\)"]
-        ok = all(re.search(p, code, re.IGNORECASE) for p in patterns)
-        send_message(msg["from"], f"I read:\n\n{code}\n\n" + ("Correct!" if ok else "Not quite yet"))
+        out["kind"], out["media_id"] = "image", msg["image"]["id"]
+    elif msg["type"] == "interactive" and msg["interactive"]["type"] == "button_reply":
+        out["kind"], out["text"] = "button", msg["interactive"]["button_reply"]["id"]
+    else:
+        return None
+    return out
+
+
+@app.post("/webhook")
+def recieve():
+    msg = parse_incoming(request.get_json(silent=True))
+    if msg and not already_seen(msg["id"]):
+        threading.Thread(target=handle_message, args=(msg,), daemon=True).start()
     return "ok", 200
 
 init_database()
