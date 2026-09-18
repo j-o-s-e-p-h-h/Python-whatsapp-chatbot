@@ -141,6 +141,48 @@ def handle_message(message):
     else:
         check_answer(phone, student, step, message["text"])
 
+def present(phone, student):
+    while True:
+        step = current_step(student)
+        if step is None:
+            finish_lesson(phone, student)
+            return
+        if step["type"] == "choice":
+            send_buttons(phone, step["text"], step["options"])
+            return
+        if step["type"] == "video":
+            video = VIDEOS[step["video"]]
+            send_message(phone, f"{step["text"]}\n\n📺{video['title']}\n{video['url']}")
+        else:
+            send_message(phone, step["text"])
+        if step["type"] not in ("teach", "video"):
+            return
+        
+        student = advance(phone, student)
+
+def advance(phone, student):
+    update_student(phone, current_step=student["current_step"] + 1, attempts=0)
+    return get_student(phone)
+    
+def finish_lesson(phone, student):
+    lesson = student["current_lesson"]
+    log_event(phone, "lesson_completed", str(lesson))
+    if lesson + 1 in LESSONS:
+        update_student(phone, current_lesson=lesson + 1, current_step=0, attempts=0)
+        send_message(phone, f"Lesson {lesson} complete! Score: {student['score']}")
+
+def send_buttons(phone_number, text, options):
+    buttons = [{"type": "reply", "reply": {"id": i, "title": t[:20]}} for i, t in options[:3]]
+    r = requests.post(f"{GRAPH}/{PHONE_NUMBER_ID}/messages",
+                      headers={"Authorization": f"Bearer {TOKEN}"},
+                      json={"messaging_product": "whatsapp", "to": phone_number,
+                            "type": "interactive",
+                            "interactive": {"type": "button", "body": {"text": text},
+                                            "action": {"buttons": buttons}}},
+                      timeout=15)
+    if not r.ok:
+        print("send failed", r.status_code, r.text)
+
 app = Flask(__name__)
 
 @app.get("/webhook")
