@@ -97,7 +97,7 @@ def transcribe_photo(image_bytes):
     code = re.sub(r"^```(?:python)?\s*|\s*```$", "", code)
     return code.strip()
 
-OLLAMA_CHAT_MODEL = "llama3:2"
+OLLAMA_CHAT_MODEL = "llama3.2"
 ASK_HISTORY = 6
 
 TUTOR_PROMPT = """You are a friendly, patient Python tutor on WhatsApp for beginners following Harvard's CS50P course.
