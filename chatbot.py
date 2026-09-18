@@ -92,6 +92,54 @@ def transcribe_photo(image_bytes):
     code = re.sub(r"^```(?:python)?\s*|\s*```$", "", code)
     return code.strip()
 
+WELCOME = ("Welcome to Pypaper! Learn Python with just a pen and paper. \n"
+           "The lessons follow Harvard's free CS50P course.\n\n"
+           "Never write your name on pages you photograph.\n\n"
+           "Type HELP anytime you feel lost or want commands. Type START to begin!")
+
+HELP = ("Commands:\n"
+        "START - begin or continue\n"
+        "PROGrESS - see your score\n"
+        "RESTART - start the current lesson again\n"
+        "HELP - this message\n\n"
+        "Otherwise just answer the question.")
+
+def normalise(text):
+    return re.sub(r"\s+", " ", text.strip().lower())
+
+def current_step(student):
+    steps = LESSONS[student["current_lesson"]]["steps"]
+    i = student["current_step"]
+    return steps[i] if i < len(steps) else None
+
+def handle_message(message):
+    phone = message["from"]
+    student = get_student(phone)
+
+    if student is None:
+        student = create_student(phone)
+        send_message(phone, WELCOME)
+        present(phone, student)
+        return
+    
+    if message["kind"] == "image":
+        handle_image(phone, student, message["media_id"])
+        return
+    
+    cmd = normalise(message["text"] or "").upper()
+    step = current_step(student)
+    if cmd == "HELP":
+        send_message(phone, HELP)
+    elif cmd == "PROGRESS":
+        send_message(phone, f"📊 Lesson {student['current_lesson']}, "
+                            f"step {student['current_step'] + 1}. Score: {student['score']} ⭐")
+    elif cmd == "RESTART":
+        update_student(phone, current_step=0, attempts=0)
+        present(phone, get_student(phone))
+    elif cmd == "START" or step is None or step["type"] in ("teach", "video"):
+        present(phone, student)               
+    else:
+        check_answer(phone, student, step, message["text"])
 
 app = Flask(__name__)
 
