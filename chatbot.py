@@ -16,6 +16,8 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GRAPH = "https://graph.facebook.com/v25.0"
 DB_PATH = "pypaper.db"
 MAXIMUM_ATTEMPTS = 3
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+MAX_VIDEO_BYTES = 16 * 1024 * 1024 
 
 def init_database():
     with database() as c:
@@ -26,7 +28,8 @@ def init_database():
                                 attempts INTEGER NOT NULL DEFAULT 0,
                                 score INTEGER NOT NULL DEFAULT 0);
                             CREATE TABLE IF NOT EXISTS events (phone TEXT, event TEXT, detail TEXT, ts REAL);
-                            CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);""")
+                            CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);
+                            CREATE TABLE IF NOT EXISTS uploads (path TEXT PRIMARY KEY, mtime REAL, media_id TEXT, ts REAL);""")
 
 def database():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -152,8 +155,7 @@ def present(phone, student):
             send_buttons(phone, step["text"], step["options"])
             return
         if step["type"] == "video":
-            video = VIDEOS[step["video"]]
-            send_message(phone, f"{step["text"]}\n\n📺{video['title']}\n{video['url']}")
+            send_video(phone, step["video"], intro=step["text"])
         else:
             send_message(phone, step["text"])
         if step["type"] not in ("teach", "video"):
@@ -186,6 +188,46 @@ def send_buttons(phone_number, text, options):
                       timeout=15)
     if not r.ok:
         print("send failed", r.status_code, r.text)
+
+def upload_media(path):
+    mtime = os.path.getmtime(path)
+    with database() as c:
+        row = c.execute("SELECT * FROM uploads WHERE path = ?", (path,)).fetchone()
+    if row and row["mtime"] == mtime and time.time() - row["ts"] < 25* 24 * 3600:
+        return row["media_id"]
+    with open(path, "rb") as f:
+        r = requests.post(f"{GRAPH}/{PHONE_NUMBER_ID}/media",
+                          headers={"Authorization": f"Bearer {TOKEN}"},
+                          files={"file": (os.path.basename(path), f, "video/mp4")},
+                          data={"messaging_product": "whatsapp", "type": "video/mp4"},
+                          timeout=120)
+    if not r.ok:
+        print("upload failed", r.status_code, r.text)
+        return None
+    media_id = r.json()["id"]
+    with database as c:
+        c.execute("INSERT OR REPLACE INTO uploads VALUES (?, ?, ?, ?)", (path, mtime, media_id, time.time()))
+    return media_id
+
+def send_video(phone_number, key, intro=None):
+    video = VIDEOS[key]
+    caption = video["title"] + ("\n" + video["credit"] if video.get("credit") else "")
+    if intro:
+        caption = intro + "\n\n" + caption
+    path = os.path.join(BASE_DIR, video["file"]) if video.get("file") else None
+    if path and os.path.isfile(path) and os.path.getsize(path) <= MAX_VIDEO_BYTES:
+        media_id = upload_media(path)
+        if media_id:
+            r = requests.post(f"{GRAPH}/{PHONE_NUMBER_ID}/messages",
+                              headers={"Authorization": f"Bearer {TOKEN}"},
+                              json={"messaging_product": "whatsapp", "to": phone_number,
+                                    "type": "video", "video": {"id": media_id, "caption": caption}},
+                              timeout=15)
+            if r.ok:
+                return
+            print("video send failed", r.status_code, r.text)
+    send_message(phone_number, f"{caption}\n{video['url']}")
+
 def check_answer(phone, student, step, text):
     answer = normalise(text)
     feedback = None

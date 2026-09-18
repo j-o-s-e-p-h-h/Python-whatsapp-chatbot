@@ -1,26 +1,26 @@
 VIDEOS = {
-    # full CS50P lectures 
-    "lecture0": {"title": "CS50P Lecture 0 - Functions, Variables", "url": "https://youtu.be/JP7ITIXGpHk", "file": None},
-    "lecture1": {"title": "CS50P Lecture 1 - Conditionals", "url": "https://youtu.be/_b6NgY_pMdw", "file": None},
-    "lecture2": {"title": "CS50P Lecture 2 - Loops", "url": "https://youtu.be/-7xg8pGcP6w", "file": None},
-    "lecture3": {"title": "CS50P Lecture 3 - Exceptions", "url": "https://youtu.be/LW7g1169v7w", "file": None},
-    "lecture4": {"title": "CS50P Lecture 4 - Libraries", "url": "https://youtu.be/MztLZWibctI", "file": None},
-    # CS50P shorts
-    "functions": {"title": "Functions - CS50P Shorts", "url": "https://youtu.be/lGS6O47debI", "file": None},
-    "variables": {"title": "Variables - CS50P Shorts", "url": "https://youtu.be/ylhcZZ7O3Tk", "file": None},
-    "return_values": {"title": "Return Values - CS50P Shorts", "url": "https://youtu.be/AetGXMcNU3M", "file": None},
-    "string_methods": {"title": "String Methods - CS50P Shorts", "url": "https://youtu.be/f4_ZPwvKF5g", "file": None},
-    "conditionals": {"title": "Conditionals - CS50P Shorts", "url": "https://youtu.be/vGr1tvjqWs0", "file": None},
-    "boolean_expressions": {"title": "Boolean Expressions - CS50P Shorts", "url": "https://youtu.be/51BNn5Ojupw", "file": None},
-    "while_loops": {"title": "While Loops - CS50P Shorts", "url": "https://youtu.be/CYobbeiGgp8", "file": None},
-    "for_loops": {"title": "For Loops - CS50P Shorts", "url": "https://youtu.be/iTRBRXOMzeM", "file": None},
-    "lists": {"title": "Lists - CS50P Shorts", "url": "https://youtu.be/xdpABsJZQYU", "file": None},
-    "dictionaries": {"title": "Dictionaries - CS50P Shorts", "url": "https://youtu.be/yPyFlO8G6rw", "file": None},
-    "handling_exceptions": {"title": "Handling Exceptions - CS50P Shorts", "url": "https://youtu.be/wjWMOYLNK_E", "file": None},
-    "raising_exceptions": {"title": "Raising Exceptions - CS50P Shorts", "url": "https://youtu.be/BltXeMM96DA", "file": None},
-    "random": {"title": "random - CS50P Shorts", "url": "https://youtu.be/yec-UUauUV8", "file": None},
-    "creating_modules_packages": {"title": "Creating Modules and Packages - CS50P Shorts", "url": "https://youtu.be/imrloYMePL0", "file": None},
+    "lecture0": {"title": "CS50P Lecture 0 - Functions, Variables", "url": "https://youtu.be/JP7ITIXGpHk", "file": None, "credit": "CS50P, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "lecture1": {"title": "CS50P Lecture 1 - Conditionals", "url": "https://youtu.be/_b6NgY_pMdw", "file": None, "credit": "CS50P, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "lecture2": {"title": "CS50P Lecture 2 - Loops", "url": "https://youtu.be/-7xg8pGcP6w", "file": None, "credit": "CS50P, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "lecture3": {"title": "CS50P Lecture 3 - Exceptions", "url": "https://youtu.be/LW7g1169v7w", "file": None, "credit": "CS50P, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "lecture4": {"title": "CS50P Lecture 4 - Libraries", "url": "https://youtu.be/MztLZWibctI", "file": None, "credit": "CS50P, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "functions": {"title": "Functions - CS50P Shorts", "url": "https://youtu.be/lGS6O47debI", "file": "videos/functions.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "variables": {"title": "Variables - CS50P Shorts", "url": "https://youtu.be/ylhcZZ7O3Tk", "file": "videos/variables.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "return_values": {"title": "Return Values - CS50P Shorts", "url": "https://youtu.be/AetGXMcNU3M", "file": "videos/return_values.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "string_methods": {"title": "String Methods - CS50P Shorts", "url": "https://youtu.be/f4_ZPwvKF5g", "file": "videos/string_methods.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "conditionals": {"title": "Conditionals - CS50P Shorts", "url": "https://youtu.be/vGr1tvjqWs0", "file": "videos/conditionals.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "boolean_expressions": {"title": "Boolean Expressions - CS50P Shorts", "url": "https://youtu.be/51BNn5Ojupw", "file": "videos/boolean_expressions.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "while_loops": {"title": "While Loops - CS50P Shorts", "url": "https://youtu.be/CYobbeiGgp8", "file": "videos/while_loops.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "for_loops": {"title": "For Loops - CS50P Shorts", "url": "https://youtu.be/iTRBRXOMzeM", "file": "videos/for_loops.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "lists": {"title": "Lists - CS50P Shorts", "url": "https://youtu.be/xdpABsJZQYU", "file": "videos/lists.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "dictionaries": {"title": "Dictionaries (part 1 of 2) - CS50P Shorts", "url": "https://youtu.be/yPyFlO8G6rw", "file": "videos/dictionaries_part1.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "dictionaries_part2": {"title": "Dictionaries (part 2 of 2) - CS50P Shorts", "url": "https://youtu.be/yPyFlO8G6rw", "file": "videos/dictionaries_part2.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "handling_exceptions": {"title": "Handling Exceptions - CS50P Shorts", "url": "https://youtu.be/wjWMOYLNK_E", "file": "videos/handling_exceptions.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "raising_exceptions": {"title": "Raising Exceptions - CS50P Shorts", "url": "https://youtu.be/BltXeMM96DA", "file": "videos/raising_exceptions.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "random": {"title": "random - CS50P Shorts", "url": "https://youtu.be/yec-UUauUV8", "file": "videos/random.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
+    "creating_modules_packages": {"title": "Creating Modules and Packages - CS50P Shorts", "url": "https://youtu.be/imrloYMePL0", "file": "videos/creating_modules_packages.mp4", "credit": "CS50P Shorts, CS50 / Harvard University, CC BY-NC-SA 4.0"},
 }
+
 LESSONS = {
     1: {
         "title": "Functions and Variables",
@@ -233,7 +233,7 @@ LESSONS = {
     },
     3: {
         "title": "Loops",
-        "videos": ["lecture2", "while_loops", "for_loops", "lists", "dictionaries"],
+        "videos": ["lecture2", "while_loops", "for_loops", "lists", "dictionaries", "dictionaries_part2"],
         "steps": [
             {"type": "teach", "text":
              "🔁 *Lesson 3: Loops* (CS50P Week 2)\n\n"
