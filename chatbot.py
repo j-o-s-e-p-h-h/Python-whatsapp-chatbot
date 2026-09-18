@@ -100,7 +100,7 @@ WELCOME = ("Welcome to Pypaper! Learn Python with just a pen and paper. \n"
 
 HELP = ("Commands:\n"
         "START - begin or continue\n"
-        "PROGrESS - see your score\n"
+        "PROGRESS - see your score\n"
         "RESTART - start the current lesson again\n"
         "HELP - this message\n\n"
         "Otherwise just answer the question.")
@@ -170,7 +170,10 @@ def finish_lesson(phone, student):
     log_event(phone, "lesson_completed", str(lesson))
     if lesson + 1 in LESSONS:
         update_student(phone, current_lesson=lesson + 1, current_step=0, attempts=0)
-        send_message(phone, f"Lesson {lesson} complete! Score: {student['score']}")
+        send_message(phone, f"Lesson {lesson} complete! Score: {student['score']}") 
+    else:
+        send_message(phone, f"You finished every lesson! Final score: {student['score']}\n\n"
+                            "Type RESTART to practise again.")
 
 def send_buttons(phone_number, text, options):
     buttons = [{"type": "reply", "reply": {"id": i, "title": t[:20]}} for i, t in options[:3]]
@@ -183,6 +186,70 @@ def send_buttons(phone_number, text, options):
                       timeout=15)
     if not r.ok:
         print("send failed", r.status_code, r.text)
+def check_answer(phone, student, step, text):
+    answer = normalise(text)
+    feedback = None
+
+    if step["type"] == "paper": 
+        correct = True               
+        for pattern, hint in zip(step["patterns"], step["pattern_hints"]):
+            if not re.search(pattern, text, re.IGNORECASE):
+                correct, feedback = False, f"Not quite. {hint}"
+                break
+    elif step["type"] == "choice":
+        correct = answer == step["answer"].lower()
+        feedback = step["wrong"].get(answer)
+    else:                                     
+        correct = answer in [normalise(a) for a in step["answers"]]
+        feedback = step["wrong"].get(answer)
+
+    record_result(phone, student, step, correct, feedback)
+
+def record_result(phone, student, step, correct, feedback):
+    attempts = student["attempts"] + 1
+    log_event(phone, "answer", f"L{student['current_lesson']}S{student['current_step']}:{'ok' if correct else 'wrong'}")
+
+    if correct:
+        if attempts == 1:
+            update_student(phone, score=student["score"] + 1)
+            send_message(phone, "Correct, first try! +1")
+        else:
+            send_message(phone, " That's it!")
+        present(phone, advance(phone, student))
+    elif attempts >= MAXIMUM_ATTEMPTS:        
+        if "answers" in step:
+            reveal = step["answers"][0]
+        elif "options" in step:
+            reveal = dict(step["options"]).get(step["answer"], step["answer"])
+        else:
+            reveal = "\n" + "\n".join(step["pattern_hints"])
+        send_message(phone, f"Let's move on. The answer was: {reveal}")
+        present(phone, advance(phone, student))
+    else:
+        update_student(phone, attempts=attempts)
+        if feedback:                          
+            send_message(phone, feedback + "\n\nTry again!")
+        elif attempts == 1:
+            send_message(phone, "Hmm, not that. Have another go!")
+        else:
+            send_message(phone, f"Hint: {step.get('hint', 'Look at the step above once more.')}")
+
+
+def handle_image(phone, student, media_id):
+    step = current_step(student)
+    if step is None or step["type"] != "paper":
+        send_message(phone, "Nice photo! But this step wants a typed answer. Look at the question above.")
+        return
+    send_message(phone, "Got it, reading your handwriting... this can take a couple of minutes.")
+    try:
+        image, mime = download_media(media_id)
+        code = transcribe_photo(image)
+    except Exception as e:
+        log_event(phone, "grade_error", str(e)[:200])
+        send_message(phone, "Sorry, I couldn't read that photo right now. Try again in a minute, or type your code instead.")
+        return
+    send_message(phone, f"I read:\n\n{code}\n\n(If I misread your writing, just type your code instead.)")
+    check_answer(phone, student, step, code)
 
 app = Flask(__name__)
 
@@ -196,7 +263,7 @@ def parse_incoming(body):
     try:
         msg = body["entry"][0]["changes"][0]["value"]["messages"][0]
     except (KeyError, IndexError, TypeError):
-        return None                           # delivery receipt etc.
+        return None                           
     out = {"id": msg["id"], "from": msg["from"], "kind": None, "text": None, "media_id": None}
     if msg["type"] == "text":
         out["kind"], out["text"] = "text", msg["text"]["body"]
