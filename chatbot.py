@@ -146,6 +146,7 @@ HELP = ("Commands:\n"
         "PROGRESS - see your score\n"
         "RESTART - start the current lesson again\n"
         "HELP - this message\n\n"
+        "RESET - wipe your progress and start from Lesson 1\n"
         "ASK ... - ask me a question, e.g.  ASK what does return do?\n"
         "VIDEO - videos that explain this lesson\n"
         "Otherwise just answer the question.")
@@ -189,6 +190,10 @@ def handle_message(message):
     elif cmd == "RESTART":
         update_student(phone, current_step=0, attempts=0)
         present(phone, get_student(phone))
+    elif cmd == "RESET":
+        with database() as c:
+            c.execute("DELETE FROM students WHERE phone = ?", (phone,))
+        send_message(phone, "Progress wiped. Type START to begin again from Lesson 1.")
     elif cmd == "START" or step is None or step["type"] in ("teach", "video"):
         present(phone, student)               
     else:
