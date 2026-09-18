@@ -29,7 +29,8 @@ def init_database():
                                 score INTEGER NOT NULL DEFAULT 0);
                             CREATE TABLE IF NOT EXISTS events (phone TEXT, event TEXT, detail TEXT, ts REAL);
                             CREATE TABLE IF NOT EXISTS seen_messages (id TEXT PRIMARY KEY, ts REAL);
-                            CREATE TABLE IF NOT EXISTS uploads (path TEXT PRIMARY KEY, mtime REAL, media_id TEXT, ts REAL);""")
+                            CREATE TABLE IF NOT EXISTS uploads (path TEXT PRIMARY KEY, mtime REAL, media_id TEXT, ts REAL);
+                            CREATE TABLE IF NOT EXISTS chats (phone TEXT, role TEXT, content TEXT, ts REAL);""")
 
 def database():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -96,9 +97,48 @@ def transcribe_photo(image_bytes):
     code = re.sub(r"^```(?:python)?\s*|\s*```$", "", code)
     return code.strip()
 
+OLLAMA_CHAT_MODEL = "llama3:2"
+ASK_HISTORY = 6
+
+TUTOR_PROMPT = """You are a friendly, patient Python tutor on WhatsApp for beginners following Harvard's CS50P course.
+Students write code with pen and paper, then photograph it or type it.
+
+Rules you must follow:
+- Be Socratic: guide with hints and questions. NEVER give the answer to the student's current question or the full solution to their current task, even if they ask directly.
+- Keep replies short: under 800 characters.
+- Plain text only. No markdown: no ** or # headings - WhatsApp shows them as symbols.
+- You may show a tiny code example of 1-3 lines, but use a different example from the current task.
+- If the question is not about programming, politely steer back to the lesson.
+
+Where the student is right now:
+Lesson: {lesson}
+Current step: {step}"""
+
+def ask_tutor(phone, student, question):
+    lesson = LESSONS[student["current_lesson"]]["title"]
+    step = current_step(student)
+    context = step["text"] if step else "between lessons"
+    with database() as c:
+        rows = c.execute("SELECT role, content FROM chats WHERE phone = ? ORDER BY ts DESC LIMIT ?",
+                         (phone, ASK_HISTORY)).fetchall()
+    history = [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
+    response = ollama.chat(
+        model=OLLAMA_CHAT_MODEL,
+        messages=[{"role": "system", "content": TUTOR_PROMPT.format(lesson=lesson, step=context)}]
+                 + history + [{"role": "user", "content": question}],
+        options={"num_predict": 300})
+    reply = response["message"]["content"].strip().replace("**", "*")
+    now = time.time()
+    with database() as c:
+        c.execute("INSERT INTO chats VALUES (?, 'user', ?, ?)", (phone, question, now))
+        c.execute("INSERT INTO chats VALUES (?, 'assistant', ?, ?)", (phone, reply, now + 0.001))
+    return reply
+
+
 WELCOME = ("Welcome to Pypaper! Learn Python with just a pen and paper. \n"
            "The lessons follow Harvard's free CS50P course.\n\n"
            "Never write your name on pages you photograph.\n\n"
+           "Stuck? Start a message with ASK to ask me anything.\n"
            "Type HELP anytime you feel lost or want commands. Type START to begin!")
 
 HELP = ("Commands:\n"
@@ -106,6 +146,8 @@ HELP = ("Commands:\n"
         "PROGRESS - see your score\n"
         "RESTART - start the current lesson again\n"
         "HELP - this message\n\n"
+        "ASK ... - ask me a question, e.g.  ASK what does return do?\n"
+        "VIDEO - videos that explain this lesson\n"
         "Otherwise just answer the question.")
 
 def normalise(text):
@@ -129,11 +171,18 @@ def handle_message(message):
     if message["kind"] == "image":
         handle_image(phone, student, message["media_id"])
         return
+
+    ask = re.match(r"\s*ask\b[\s:,.-]*(.*)", message["text"] or "", re.IGNORECASE | re.DOTALL)
+    if ask and message["kind"] == "text":
+        handle_ask(phone, student, ask.group(1).strip())
+        return
     
     cmd = normalise(message["text"] or "").upper()
     step = current_step(student)
     if cmd == "HELP":
         send_message(phone, HELP)
+    elif cmd == "VIDEO":
+        send_lesson_videos(phone, student)
     elif cmd == "PROGRESS":
         send_message(phone, f"📊 Lesson {student['current_lesson']}, "
                             f"step {student['current_step'] + 1}. Score: {student['score']} ⭐")
@@ -144,6 +193,27 @@ def handle_message(message):
         present(phone, student)               
     else:
         check_answer(phone, student, step, message["text"])
+
+def handle_ask(phone, student, question):
+    if not question:
+        send_message(phone, "Type your question after ASK, e.g.\nASK what does return do?")
+        return
+    send_message(phone, "Good question - let me think...")
+    try:
+        reply = ask_tutor(phone, student, question)
+    except Exception as e:
+        log_event(phone, "ask_error", str(e)[:200])
+        send_message(phone, "Sorry, I can't answer questions right now. Try again in a minute, or type VIDEO.")
+        return
+    log_event(phone, "ask", question[:200])
+    send_message(phone, reply[:1500] + "\n\n(Now carry on with the question above)")
+
+
+def send_lesson_videos(phone, student):
+    lesson = LESSONS[student["current_lesson"]]
+    send_message(phone, f"Videos for Lesson {student['current_lesson']}: {lesson['title']}")
+    for key in lesson.get("videos", []):
+        send_video(phone, key)
 
 def present(phone, student):
     while True:
