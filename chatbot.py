@@ -377,6 +377,8 @@ def parse_incoming(body):
     except (KeyError, IndexError, TypeError):
         return None                           
     out = {"id": msg["id"], "from": msg["from"], "kind": None, "text": None, "media_id": None}
+    if time.time() - int(msg.get("timestamp", time.time())) > 15 * 60:
+        return None
     if msg["type"] == "text":
         out["kind"], out["text"] = "text", msg["text"]["body"]
     elif msg["type"] == "image":
