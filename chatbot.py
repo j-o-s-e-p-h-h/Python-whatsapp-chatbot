@@ -205,7 +205,7 @@ def upload_media(path):
         print("upload failed", r.status_code, r.text)
         return None
     media_id = r.json()["id"]
-    with database as c:
+    with database() as c:
         c.execute("INSERT OR REPLACE INTO uploads VALUES (?, ?, ?, ?)", (path, mtime, media_id, time.time()))
     return media_id
 
